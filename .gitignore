@@ -1,0 +1,15 @@
+# Godot engine binaries
+Godot_v4.6.1-stable_win64/
+
+# Python
+__pycache__/
+*.pyc
+
+# Godot cache/import files
+.godot/
+.import/
+*.import
+
+# OS junk
+.DS_Store
+Thumbs.db
