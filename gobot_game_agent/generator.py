@@ -180,10 +180,12 @@ def _should_generate_scenes(user_request: str, plan: Dict[str, Any]) -> bool:
     """
     text = (user_request or "").lower()
 
-    # Only do scenes when the USER asked for it explicitly
+    # If the user is asking to create a game / level / platformer,
+    # we almost certainly need scenes.
     keywords = [
-        ".tscn", "scene", "add node", "node", "collision", "instantiate",
-        "characterbody2d", "collisionshape2d", "main scene"
+        ".tscn", "scene", "level", "platformer", "platform", "floor", "ground",
+        "tile", "map", "world", "player scene", "instantiate", "spawn", "node",
+        "characterbody2d", "collisionshape2d", "staticbody2d"
     ]
     return any(k in text for k in keywords)
 
@@ -221,15 +223,17 @@ def generate_patch(user_request: str, plan: Dict[str, Any]) -> Dict[str, Any]:
     - Run scene generator only if heuristic says scenes are needed.
     - Merge outputs into one patch.
     """
-    script_patch = generate_script_patch(user_request, plan)
+    artifacts = plan.get("artifacts") or {}
+    want_scripts = bool(artifacts.get("scripts", True))
+    want_scenes  = bool(artifacts.get("scenes", False))
 
-    if _should_generate_scenes(user_request, plan):
-        try:
-            scene_patch = generate_scene_patch(user_request, plan)
-            return _merge_patches(script_patch, scene_patch)
-        except Exception as e:
-            print("\n--- SCENE GENERATION FAILED; continuing with scripts only ---")
-            print("Reason:", e)
-            return script_patch
+    script_patch = {"files": []}
+    scene_patch = {"files": []}
 
-    return script_patch
+    if want_scripts:
+        script_patch = generate_script_patch(user_request, plan)
+
+    if want_scenes:
+        scene_patch = generate_scene_patch(user_request, plan)
+
+    return _merge_patches(script_patch, scene_patch)

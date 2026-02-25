@@ -165,29 +165,32 @@ PLANNER_TEMPLATE = PromptTemplate(
 
     PROJECT CONTEXT:
     - Engine: Godot 4.
-    - Language: GDScript                
-    - Target: 2D platoformer game project unless explicitly stated otherwise
-    - Existing scene structure may already exist
-    - Goal: produce a small actionable plan that can be executed by a generator + tools
+    - Language: GDScript
+    - Target: 2D platformer unless explicitly stated otherwise
 
     REQUIREMENTS:
     - Return ONLY valid JSON (no markdown, no backticks, no commentary).
     - JSON schema MUST be exactly:
+
     {{
-        "steps": ["...", "..."]
+      "artifacts": {{
+        "scripts": true,
+        "scenes": true,
+        "project_settings": false
+      }},
+      "steps": ["...", "..."]
     }}
+
     - 3 to 8 steps.
     - Each step: short imperative (max ~10 words).
     - Use Godot 4 node names (CharacterBody2D, Node2D, CollisionShape2D).
-    - Do NOT include implementation details like exact code.
-    - Do NOT mention tools, CLI, or python internals.
+    - Do NOT include code.
+    - Do NOT mention tools/CLI/python.
+    - If the request implies new nodes / levels / a playable game, set artifacts.scenes = true.
+    - If the request implies movement/behavior, set artifacts.scripts = true.
+    - Only set artifacts.project_settings = true if the user explicitly asked to change project settings.
 
-    PLANNING STYLE:
-    - Prefer minimal viable solution.
-    - If the request is ambiguous, make 1–2 reasonable assumptions
-    and include them as steps like: "Assume 2D top-down movement".
-
-    OUTPUT FORMAT (STRICT — MUST FOLLOW EXACTLY): Return ONLY valid JSON.
+    OUTPUT FORMAT (STRICT): Return ONLY valid JSON.
     """),
 )
 
@@ -231,6 +234,8 @@ SCRIPT_GENERATOR_TEMPLATE = PromptTemplate(
     - EXACTLY one entry per file path (no duplicates).
     - For edits, output the FULL file contents in "lines".
     - Do NOT touch project.godot.
+    - If creating a player script, ALWAYS write it to scripts/Player.gd (not Player.gd).
+    - Include 'func' for all functions (e.g., 'func _physics_process(delta):').
 
     GODOT 4 MOVEMENT PREFERENCE:
     - Top-down movement:
@@ -266,14 +271,14 @@ SCENE_GENERATOR_TEMPLATE = PromptTemplate(
 
     OUTPUT FORMAT (STRICT):
     Return ONLY valid JSON with EXACT schema:
-    {
+    {{
     "files": [
-        {
+        {{
         "path": "scenes/Level.tscn",
         "lines": ["line1", "line2", "..."]
-        }
+        }}
     ]
-    }
+    }}
 
     RULES (MUST FOLLOW):
     - paths in JSON are project-relative (like scenes/Level.tscn). NO "res://"

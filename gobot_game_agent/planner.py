@@ -23,4 +23,5 @@ def create_plan(user_request: str) -> dict:
     try:
         return json.loads(content)
     except Exception:
-        return {"steps": [content.strip()]}
+        return {"artifacts": {"scripts": True, "scenes": False, "project_settings": False},
+            "steps": [content.strip()]}

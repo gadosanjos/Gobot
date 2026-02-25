@@ -7,6 +7,7 @@ from generator import generate_patch
 # This points from gobot_game_agent -> playground (sibling folder)
 PROJECT_PATH = Path(__file__).parent.parent / "playground"
 
+
 def main():
     user_request = input("What do you want the agent to do?\n> ")
 
@@ -23,14 +24,21 @@ def main():
     for p in written:
         print("WROTE:", p)
 
+    # ✅ NEW: only validate scenes if we actually wrote any .tscn files
+    wrote_scenes = any(p.lower().endswith(".tscn") for p in written)
+
     print("\n--- EXECUTOR (godot headless) ---")
-    result = run_godot_validate_scenes(PROJECT_PATH)
+    if wrote_scenes:
+        result = run_godot_validate_scenes(PROJECT_PATH)
+    else:
+        result = run_godot_headless(PROJECT_PATH)
 
     print("\n--- VALIDATOR ---")
     verdict = validate_headless_result(result)
     print("PASS ✅" if verdict["ok"] else "FAIL ❌")
     if not verdict["ok"]:
         print("Reason:", verdict["reason"])
+
 
 # Entry point
 if __name__ == "__main__":
