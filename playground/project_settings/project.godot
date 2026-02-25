@@ -1,0 +1,5 @@
+project_settings/project.godot
+input_map["ui_left"] = KeyCode.LEFT
+input_map["ui_right"] = KeyCode.RIGHT
+input_map["ui_up"] = KeyCode.UP
+input_map["ui_down"] = KeyCode.DOWN

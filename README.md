@@ -41,6 +41,20 @@ Gobot then:
 
 ## 🏗️ Agent Pipeline
 
+User Goal
+   ↓
+Agent Controller
+   ↓
+Planner  ← (LLM)
+   ↓
+Generator ← (LLM)
+   ↓
+Executor  ← tools (Godot CLI, filesystem, APIs)
+   ↓
+Validator ← rules + LLM
+   ↓
+Loop until goal satisfied
+
 Gobot follows a modular agent architecture:
 
 ### 🔹 Planner (LLM)
