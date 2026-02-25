@@ -1,5 +1,5 @@
 from pathlib import Path
-from tools import run_godot_headless, apply_patch
+from tools import run_godot_headless, run_godot_validate_scenes, apply_patch
 from validator import validate_headless_result
 from planner import create_plan
 from generator import generate_patch
@@ -24,7 +24,7 @@ def main():
         print("WROTE:", p)
 
     print("\n--- EXECUTOR (godot headless) ---")
-    result = run_godot_headless(PROJECT_PATH)
+    result = run_godot_validate_scenes(PROJECT_PATH)
 
     print("\n--- VALIDATOR ---")
     verdict = validate_headless_result(result)

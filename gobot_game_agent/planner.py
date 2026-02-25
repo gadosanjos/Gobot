@@ -4,7 +4,7 @@ from prompts import prompt_template
 
 client = ai.Client()
 
-MODEL = "groq:llama-3.1-8b-instant"
+MODEL = "groq:llama-3.3-70b-versatile"
 
 def create_plan(user_request: str) -> dict:
     """

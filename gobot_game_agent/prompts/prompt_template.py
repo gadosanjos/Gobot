@@ -191,15 +191,14 @@ PLANNER_TEMPLATE = PromptTemplate(
     """),
 )
 
-
-GENERATOR_TEMPLATE = PromptTemplate(
-    name="Gobot Generator Patch",
-    tags=["gobot", "generator", "godot", "patch", "json"],
+SCRIPT_GENERATOR_TEMPLATE = PromptTemplate(
+    name="Gobot Script Generator Patch",
+    tags=["gobot", "generator", "godot", "patch", "json", "scripts"],
     template=dedent("""
-    You are the GENERATOR for a Godot 4 automation agent.
+    You are the SCRIPT GENERATOR for a Godot 4 automation agent.
 
     JOB:
-    Produce project files/edits as a patch.
+    Create or update ONLY GDScript files (.gd) as a patch.
 
     USER REQUEST:
     {task}
@@ -209,41 +208,125 @@ GENERATOR_TEMPLATE = PromptTemplate(
 
     CONSTRAINTS:
     - Engine: Godot 4.x
-    - Target: 2D platoformer game project unless explicitly stated otherwise
-    - Use ONLY valid Godot 4 concepts and file formats.
+    - Language: GDScript only
+    - Output ONLY .gd files. (Do NOT output .tscn, project.godot, .import, etc.)
     - Prefer minimal implementation over completeness.
     - Do NOT invent APIs.
-    - Do NOT add features not requested.
-    - Do NOT include commentary.
+    - Do NOT include commentary or markdown.
 
     OUTPUT FORMAT (STRICT):
     Return ONLY valid JSON with EXACT schema:
 
     {{
-    "files": [
+      "files": [
         {{
-        "path": "relative/path.ext",
-        "lines": ["line1", "line2", "..."]
+          "path": "relative/path.gd",
+          "lines": ["line1", "line2", "..."]
         }}
-    ]
+      ]
     }}
 
     RULES:
-    - paths must be relative to project root, use forward slashes.
-    - Each file uses "lines" only (no multiline "content" strings).
-    - No markdown fences, no explanations.
-    - If you must modify an existing file, output the full new file contents in "lines".
+    - paths must be relative to project root, forward slashes, NO res://
+    - EXACTLY one entry per file path (no duplicates).
+    - For edits, output the FULL file contents in "lines".
+    - Do NOT touch project.godot.
 
-    GODOT-SPECIFIC RULES:
-    - .gd files must be valid GDScript.
-    - .tscn files must be valid Godot text scene format (NOT JSON).
-    - Prefer CharacterBody2D for player movement.
-    - For movement, use:
-    Input.get_vector("ui_left","ui_right","ui_up","ui_down") and move_and_slide()
+    GODOT 4 MOVEMENT PREFERENCE:
+    - Top-down movement:
+      var input_dir = Input.get_vector("ui_left","ui_right","ui_up","ui_down")
+    - CharacterBody2D usage:
+      velocity = input_dir * SPEED
+      move_and_slide()
 
-    SAFETY / VALIDATION FRIENDLY:
-    - Keep changes minimal to reduce runtime errors.
-    - Avoid touching project.godot unless explicitly requested.
+    OUTPUT: JSON only.
+    """),
+)
+
+SCENE_GENERATOR_TEMPLATE = PromptTemplate(
+    name="Gobot Scene Generator Patch",
+    tags=["gobot", "generator", "godot", "patch", "json", "scenes"],
+    template=dedent("""
+    You are the SCENE GENERATOR for a Godot 4 automation agent.
+
+    JOB:
+    Create or update ONLY Godot scene files (.tscn) as a patch.
+
+    USER REQUEST:
+    {task}
+
+    PLAN (context only):
+    {plan}
+
+    CONSTRAINTS:
+    - Engine: Godot 4.x
+    - ASCII ONLY (no smart quotes).
+    - Output ONLY .tscn files (no .gd, no project.godot).
+    - Return ONLY valid JSON (no markdown).
+
+    OUTPUT FORMAT (STRICT):
+    Return ONLY valid JSON with EXACT schema:
+    {
+    "files": [
+        {
+        "path": "scenes/Level.tscn",
+        "lines": ["line1", "line2", "..."]
+        }
+    ]
+    }
+
+    RULES (MUST FOLLOW):
+    - paths in JSON are project-relative (like scenes/Level.tscn). NO "res://"
+    - BUT inside .tscn text, ALL resource paths MUST use res://
+    - EXACTLY one entry per file path (no duplicates)
+    - Output FULL .tscn contents in "lines"
+    - .tscn MUST start with: [gd_scene load_steps=... format=3]
+
+    YOU MUST GENERATE A MINIMAL PLATFORMER SETUP:
+    Create TWO scenes:
+    1) scenes/Player.tscn:
+    - root CharacterBody2D named Player
+    - CollisionShape2D with RectangleShape2D sub_resource
+    - script ext_resource points to res://scripts/Player.gd
+    2) scenes/Level.tscn:
+    - root Node2D named Level
+    - instanced Player scene using ext_resource type="PackedScene"
+    - StaticBody2D Floor with CollisionShape2D RectangleShape2D
+
+    GOLDEN EXAMPLES (follow this structure exactly):
+
+    --- scenes/Player.tscn ---
+    [gd_scene load_steps=3 format=3]
+
+    [ext_resource type="Script" path="res://scripts/Player.gd" id="1"]
+
+    [sub_resource type="RectangleShape2D" id="1"]
+    size = Vector2(16, 32)
+
+    [node name="Player" type="CharacterBody2D"]
+    script = ExtResource("1")
+
+    [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+    shape = SubResource("1")
+
+    --- scenes/Level.tscn ---
+    [gd_scene load_steps=3 format=3]
+
+    [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1"]
+
+    [sub_resource type="RectangleShape2D" id="1"]
+    size = Vector2(320, 32)
+
+    [node name="Level" type="Node2D"]
+
+    [node name="Player" parent="." instance=ExtResource("1")]
+    position = Vector2(0, 0)
+
+    [node name="Floor" type="StaticBody2D" parent="."]
+    position = Vector2(0, 280)
+
+    [node name="CollisionShape2D" type="CollisionShape2D" parent="Floor"]
+    shape = SubResource("1")
 
     OUTPUT: JSON only.
     """),

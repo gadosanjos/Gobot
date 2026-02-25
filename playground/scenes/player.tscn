@@ -1,8 +1,0 @@
-node
-  name: String('CharacterBody2D')
-  path: String('/')
-  resource: ResourcePath('res://scenes/player.gd')
-node
-  name: String('Controller2D')
-  path: String('.')
-  resource: ResourcePath('res://scenes/controller.gd')
