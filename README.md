@@ -57,6 +57,22 @@ Loop until goal satisfied
 
 Gobot follows a modular agent architecture:
 
+## Multi-LLM Call Flow
+
+Gobot uses multiple LLM calls to coordinate development tasks.
+
+1. Planner LLM  
+   - Interprets the user request  
+   - Produces a structured development plan  
+
+2. Generator LLM  
+   - Produces scripts and scene patches  
+   - Generates Godot-compatible files  
+
+3. Validator  
+   - Uses engine feedback and rule checks  
+   - Determines if the generation succeeded
+
 ### 🔹 Planner (LLM)
 
 * Interprets user requests
@@ -95,6 +111,14 @@ Gobot follows a modular agent architecture:
 * **LLM API (Groq)** — planning & code generation
 
 ---
+## Safety & Validation
+
+To prevent invalid or unsafe modifications, Gobot includes:
+
+- Path safety checks (blocks directory traversal)
+- Duplicate file detection
+- Scene format validation (.tscn header checks)
+- Engine runtime validation using Godot headless mode
 
 ## ⚙️ Example Workflow
 
@@ -124,7 +148,7 @@ cd Gobot
 
 ### 2️⃣ Install dependencies
 
-Godot as interaction is made via godot headless
+Godot must be installed locally. Gobot interacts with the engine using the Godot headless CLI.
 
 ### 3️⃣ Run the agent
 
