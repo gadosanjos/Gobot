@@ -35,6 +35,24 @@ def run_godot_validate_scenes(project_dir: str | Path) -> dict:
         "stderr": p.stderr,
     }
 
+def _normalize_gdscript_indentation(text: str) -> str:
+    """
+    Convert leading spaces to tabs (Godot default) and prevent mixing.
+    Assumes 4 spaces == 1 tab.
+    """
+    lines = text.splitlines()
+    fixed = []
+
+    for line in lines:
+        stripped = line.lstrip(" ")
+        leading_spaces = len(line) - len(stripped)
+
+        # convert groups of 4 spaces to tabs
+        tabs = "\t" * (leading_spaces // 4)
+        fixed.append(tabs + stripped)
+
+    return "\n".join(fixed) + "\n"
+
 def apply_patch(project_root: str | Path, patch: dict) -> list[str]:
     """
     Writes patch["files"] into the Godot project folder safely.
@@ -100,6 +118,10 @@ def apply_patch(project_root: str | Path, patch: dict) -> list[str]:
                     "Scene must start with [gd_scene] and be valid Godot scene format."
                 )
             
+                # normalize indentation for GDScript files
+        if rel.lower().endswith(".gd"):
+            content = _normalize_gdscript_indentation(content)
+
         target.write_text(content, encoding="utf-8")
         written.append(rel)
 

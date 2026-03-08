@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 from typing import Any, Dict, List
+from retriever import retrieve_context
 
 import aisuite as ai
 from prompts import prompt_template
@@ -149,9 +150,15 @@ def generate_script_patch(user_request: str, plan: Dict[str, Any]) -> Dict[str, 
     Script generator: should output ONLY .gd files.
     Requires prompt_template.SCRIPT_GENERATOR_TEMPLATE to exist.
     """
+    docs = retrieve_context(
+        query=f"{user_request}\nPLAN: {' '.join(plan.get('steps', []))}\nTARGET: scripts",
+        top_k=5,
+    )
     prompt = prompt_template.SCRIPT_GENERATOR_TEMPLATE.render(
         task=user_request,
         plan=plan.get("steps", []),
+        grounding=getattr(prompt_template, "GODOT_GROUNDING", ""),
+        grounding_docs=docs,
     )
     return _call_llm(prompt, "SCRIPT GENERATOR")
 
@@ -161,9 +168,15 @@ def generate_scene_patch(user_request: str, plan: Dict[str, Any]) -> Dict[str, A
     Scene generator: should output ONLY .tscn files.
     Requires prompt_template.SCENE_GENERATOR_TEMPLATE to exist.
     """
+    docs = retrieve_context(
+        query=f"{user_request}\nPLAN: {' '.join(plan.get('steps', []))}\nTARGET: scenes .tscn res:// ext_resource instance",
+        top_k=6,
+    )
     prompt = prompt_template.SCENE_GENERATOR_TEMPLATE.render(
         task=user_request,
         plan=plan.get("steps", []),
+        grounding=getattr(prompt_template, "GODOT_GROUNDING", ""),
+        grounding_docs=docs,
     )
     return _call_llm(prompt, "SCENE GENERATOR")
 
@@ -216,13 +229,23 @@ def _merge_patches(*patches: Dict[str, Any]) -> Dict[str, Any]:
 
 def generate_patch(user_request: str, plan: Dict[str, Any]) -> Dict[str, Any]:
     """
+    TEMP SIMPLIFIED VERSION
+
+    For now we ONLY generate scripts.
+    Scene generation is disabled to simplify the agent while we
+    implement the ReAct loop.
+    """
+
+    return generate_script_patch(user_request, plan)
+    
+    """
     Backwards-compatible entrypoint used by agent.py :contentReference[oaicite:1]{index=1}
 
     Default behavior:
     - Always run script generator.
     - Run scene generator only if heuristic says scenes are needed.
     - Merge outputs into one patch.
-    """
+    
     artifacts = plan.get("artifacts") or {}
     want_scripts = bool(artifacts.get("scripts", True))
     want_scenes  = bool(artifacts.get("scenes", False))
@@ -237,3 +260,4 @@ def generate_patch(user_request: str, plan: Dict[str, Any]) -> Dict[str, Any]:
         scene_patch = generate_scene_patch(user_request, plan)
 
     return _merge_patches(script_patch, scene_patch)
+    """

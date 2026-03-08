@@ -15,3 +15,4 @@ func _init() -> void:
 
 	print("OK: all scenes loaded")
 	quit(0)
+"res://icon.svg"

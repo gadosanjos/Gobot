@@ -175,7 +175,7 @@ PLANNER_TEMPLATE = PromptTemplate(
     {{
       "artifacts": {{
         "scripts": true,
-        "scenes": true,
+        "scenes": false,
         "project_settings": false
       }},
       "steps": ["...", "..."]
@@ -209,6 +209,9 @@ SCRIPT_GENERATOR_TEMPLATE = PromptTemplate(
     PLAN (context only):
     {plan}
 
+    {grounding}
+
+    {grounding_docs}
     CONSTRAINTS:
     - Engine: Godot 4.x
     - Language: GDScript only
@@ -262,6 +265,10 @@ SCENE_GENERATOR_TEMPLATE = PromptTemplate(
 
     PLAN (context only):
     {plan}
+    
+    {grounding}
+
+    {grounding_docs}
 
     CONSTRAINTS:
     - Engine: Godot 4.x
