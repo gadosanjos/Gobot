@@ -126,3 +126,111 @@ def apply_patch(project_root: str | Path, patch: dict) -> list[str]:
         written.append(rel)
 
     return written
+
+def list_files(project_root: str | Path, directory: str = "") -> list[str]:
+    """
+    Lists useful project files (relative paths), skipping noisy Godot cache folders.
+    """
+    root = Path(project_root).resolve()
+    target = (root / directory).resolve()
+
+    if not target.exists():
+        return [f"Directory not found: {directory}"]
+
+    files = []
+
+    skip_prefixes = [
+        ".godot/",
+        ".git/",
+    ]
+
+    skip_suffixes = [
+        ".import",
+        ".uid",
+        ".cfg",
+        ".cache",
+        ".bin",
+        ".md5",
+        ".ctex",
+    ]
+
+    for p in target.rglob("*"):
+        if not p.is_file():
+            continue
+
+        rel = str(p.relative_to(root)).replace("\\", "/")
+
+        if any(rel.startswith(prefix) for prefix in skip_prefixes):
+            continue
+
+        if any(rel.endswith(suffix) for suffix in skip_suffixes):
+            continue
+
+        files.append(rel)
+
+    return files[:200]
+
+
+def read_file(project_root: str | Path, path: str) -> str:
+    """
+    Reads a file from the project so the agent can inspect code.
+    """
+    root = Path(project_root).resolve()
+    target = (root / path).resolve()
+
+    if not target.exists():
+        return f"File not found: {path}"
+
+    try:
+        return target.read_text(encoding="utf-8")
+    except Exception as e:
+        return f"Error reading file: {e}"
+    
+def get_project_snapshot(project_root: str | Path) -> str:
+    """
+    Returns a compact high-value project snapshot for the agent prompt.
+    Focus on useful files/folders, skip Godot cache noise.
+    """
+    root = Path(project_root).resolve()
+
+    important = {
+        "scenes": [],
+        "scripts": [],
+        "other": []
+    }
+
+    for p in root.rglob("*"):
+        if not p.is_file():
+            continue
+
+        rel = str(p.relative_to(root)).replace("\\", "/")
+
+        if rel.startswith(".godot/") or rel.startswith(".git/"):
+            continue
+
+        if rel.startswith("scenes/"):
+            important["scenes"].append(rel)
+        elif rel.startswith("scripts/"):
+            important["scripts"].append(rel)
+        else:
+            if rel in ["project.godot", "validate_scenes.gd", ".editorconfig", ".gitattributes", ".gitignore"]:
+                important["other"].append(rel)
+
+    lines = ["PROJECT SNAPSHOT:"]
+
+    if important["other"]:
+        lines.append("other:")
+        for f in sorted(important["other"]):
+            lines.append(f"  - {f}")
+
+    if important["scenes"]:
+        lines.append("scenes:")
+        for f in sorted(important["scenes"]):
+            lines.append(f"  - {f}")
+
+    if important["scripts"]:
+        lines.append("scripts:")
+        for f in sorted(important["scripts"]):
+            lines.append(f"  - {f}")
+
+    return "\n".join(lines)

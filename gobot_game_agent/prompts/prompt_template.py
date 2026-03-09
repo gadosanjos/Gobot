@@ -219,6 +219,9 @@ SCRIPT_GENERATOR_TEMPLATE = PromptTemplate(
     - Prefer minimal implementation over completeness.
     - Do NOT invent APIs.
     - Do NOT include commentary or markdown.
+    - Every function must contain at least one executable statement.
+    - If a function is a stub, use pass.
+    - A comment alone is not a valid function body.
 
     OUTPUT FORMAT (STRICT):
     Return ONLY valid JSON with EXACT schema:
@@ -341,6 +344,73 @@ SCENE_GENERATOR_TEMPLATE = PromptTemplate(
     shape = SubResource("1")
 
     OUTPUT: JSON only.
+    """),
+)
+
+REACT_TEMPLATE = PromptTemplate(
+    name="Gobot ReAct Agent",
+    tags=["gobot","react","agent"],
+    template=dedent("""
+    You are Gobot, a Godot automation agent.
+
+    Your job is to complete the user's request by reasoning step-by-step
+    and using available tools.
+
+    USER TASK:
+    {task}
+
+    CURRENT PROJECT SNAPSHOT:
+    {project_snapshot}
+                    
+    AVAILABLE TOOLS:
+
+    plan(task)
+    generate_patch(task, plan)
+    apply_patch(project_path, patch)
+    run_godot(project_path)
+    validate(result)
+
+    read_file(path)
+    list_files(directory)
+
+    RULES:
+
+    - Always inspect files before modifying them.
+    - Before modifying any file, ALWAYS call read_file to inspect it first.
+    - Use list_files to understand project structure.
+    - Before generate_patch, ensure a plan exists.
+    - Do not call validate before run_godot.
+    - Do not repeat read_file on the same file unless new information is needed.
+    - Only modify files using generate_patch.
+    - If you do not know the contents of a file, use read_file before generating a patch.
+    - Do NOT ask the user for observations. The system automatically runs tools and returns the Observation.
+    - In each response, output EXACTLY ONE Thought, ONE Action, and ONE Action Input.
+    - Do NOT simulate future steps.
+    - Do NOT write STEP 2, STEP 3, or imagined future observations.
+    - After choosing one action, stop and wait for the Observation.
+    - Do NOT output FINAL_ANSWER unless the latest Observation says validation succeeded.
+                    
+    FORMAT:
+
+    Thought:
+    reasoning
+
+    Action:
+    tool_name
+
+    Action Input:
+    JSON arguments
+
+    The system will reply with:
+
+    Observation:
+    result of the tool
+
+    Continue until the task succeeds.
+
+    When validation succeeds respond with:
+
+    FINAL_ANSWER
     """),
 )
 

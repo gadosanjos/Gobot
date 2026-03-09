@@ -3,7 +3,15 @@ from tools import run_godot_headless, run_godot_validate_scenes, apply_patch
 from validator import validate_headless_result
 from planner import create_plan
 from generator import generate_patch
-
+#agent.py
+#  ↓
+#planner.py
+#  ↓
+#generator.py
+#  ↓
+#tools.py
+#  ↓
+#validator.py
 # This points from gobot_game_agent -> playground (sibling folder)
 PROJECT_PATH = Path(__file__).parent.parent / "playground"
 
