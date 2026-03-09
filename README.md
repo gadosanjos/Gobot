@@ -1,184 +1,280 @@
-# 🤖 Gobot — Game-Building Agent
+# 🤖 Gobot — Godot Game-Building Agent
 
-**Gobot** is an AI-powered development assistant that automates repetitive setup and configuration tasks in the Godot game engine.
+**Gobot** is an AI-powered development assistant for the **Godot game engine**.
 
-Game development often involves repetitive, error-prone steps such as scene creation, node configuration, scripting, and wiring components. Gobot streamlines this workflow by interpreting user requests and modifying the project automatically.
+It helps automate repetitive development tasks by interpreting user goals, inspecting the current project, generating code patches, applying them, and validating the result through Godot’s headless runtime.
+
+Rather than acting as a simple code generator, Gobot is evolving into a **tool-using agent** that can reason step-by-step about project changes.
 
 ---
 
 ## 🎯 Problem
 
-Game developers repeatedly perform tasks like:
+Game development often involves repetitive and error-prone setup work such as:
 
-* Creating scenes
-* Attaching scripts
-* Configuring physics nodes
-* Wiring components
+- inspecting project structure
+- modifying scripts
+- wiring gameplay logic
+- validating whether changes actually run in-engine
 
-These steps slow development and introduce configuration errors.
+These steps slow iteration and can easily introduce engine-specific errors.
 
-Gobot reduces this friction by automating project setup and validation.
+Gobot reduces this friction by helping automate script generation, project inspection, patch application, and validation.
 
 ---
 
-## 🧠 What Gobot Does
+## 🧠 What Gobot Can Do Now
+
+Gobot currently supports a **script-first development workflow**.
 
 Users can request tasks such as:
 
-* “Add a player with movement controls.”
-* “Create an enemy with collision and basic AI.”
-* “Add gravity and jump mechanics.”
-* “Insert a camera that follows the player.”
+- “Make the player move in top-down style.”
+- “Add health and damage handling to the player.”
+- “Inspect the current player script.”
+- “Modify movement to only allow vertical input.”
 
-Gobot then:
+Gobot can then:
 
-✔ updates the Godot project
-✔ generates scripts and scenes
-✔ validates the project
-✔ reports errors for correction
+✔ inspect the current project structure  
+✔ read relevant files before editing  
+✔ create a structured plan  
+✔ generate script patches  
+✔ apply patches to the Godot project  
+✔ run Godot in headless mode  
+✔ inspect runtime/script errors  
+✔ continue iterating step-by-step
 
 ---
 
-## 🏗️ Agent Pipeline
+## 🏗️ Current Architectures
 
+Gobot currently contains **two runtimes**:
+
+### 1. `agent.py` — Original Linear Pipeline
+This is the earlier pipeline kept for comparison and debugging.
+
+Flow:
+
+```text
 User Goal
    ↓
-Agent Controller
+Planner
    ↓
-Planner  ← (LLM)
+Generator
    ↓
-Generator ← (LLM)
+Executor
    ↓
-Executor  ← tools (Godot CLI, filesystem, APIs)
+Validator
+```
+
+This version is simpler and useful for testing the earlier non-agent workflow.
+
+---
+
+### 2. `react_agent.py` — ReAct Agent Runtime
+This is the newer runtime that introduces a **reasoning loop**.
+
+Flow:
+
+```text
+User Goal
    ↓
-Validator ← rules + LLM
+Thought
    ↓
-Loop until goal satisfied
+Action
+   ↓
+Observation
+   ↓
+Thought
+   ↓
+Action
+   ↓
+Observation
+   ↓
+... repeat until done
+```
 
-Gobot follows a modular agent architecture:
+This allows Gobot to:
 
-## Multi-LLM Call Flow
+- inspect files before editing
+- reason about what tool to use next
+- react to Godot runtime errors
+- iterate instead of following one fixed pipeline
 
-Gobot uses multiple LLM calls to coordinate development tasks.
+---
 
-1. Planner LLM  
-   - Interprets the user request  
-   - Produces a structured development plan  
+## 🔁 ReAct Agent Loop
 
-2. Generator LLM  
-   - Produces scripts and scene patches  
-   - Generates Godot-compatible files  
+The current ReAct-style runtime uses tool calls such as:
 
-3. Validator  
-   - Uses engine feedback and rule checks  
-   - Determines if the generation succeeded
+- `list_files`
+- `read_file`
+- `plan`
+- `generate_patch`
+- `apply_patch`
+- `run_godot`
+- `validate`
 
-### 🔹 Planner (LLM)
+Typical flow:
 
-* Interprets user requests
-* Breaks tasks into actionable steps
-* Produces structured plans
+```text
+Inspect project
+   ↓
+Read relevant file
+   ↓
+Create/update plan
+   ↓
+Generate patch
+   ↓
+Apply patch
+   ↓
+Run Godot headless
+   ↓
+Validate result
+   ↓
+If needed, inspect error and iterate
+```
 
-### 🔹 Generator (LLM + Templates)
+---
 
-* Produces scripts and scene files
-* Uses deterministic templates for engine formats
-* Outputs structured patch instructions
+## 🧩 Core Components
 
-### 🔹 Executor (Tools/API)
+### 🔹 Planner
+- Interprets the user request
+- Produces structured task steps
+- Provides a high-level development plan
 
-* Writes files to the Godot project
-* Edits scene files
-* Runs Godot in headless mode
+### 🔹 Generator
+- Produces Godot-compatible script patches
+- Uses prompt templates and retrieved grounding docs
+- Outputs structured JSON patch data
 
-### 🔹 Validator (Rules + Engine Feedback)
+### 🔹 Executor / Tools
+- Writes files into the Godot project
+- Reads files for inspection
+- Lists project files
+- Runs Godot in headless mode
 
-* Verifies project loads successfully
-* Detects script and scene errors
-* Returns feedback for correction
+### 🔹 Validator
+- Checks runtime result from Godot
+- Detects script/scene parse errors
+- Returns feedback for correction
 
-**Future additions:**
-
-* Project memory/state tracking
-* Git integration
+### 🔹 Retriever
+- Supplies Godot-specific grounding knowledge
+- Helps the generator stay closer to valid engine usage
 
 ---
 
 ## 🛠️ Tools & Technologies
 
-* **Godot Engine CLI** — headless execution & validation
-* **Filesystem Tools** — project structure manipulation
-* **LLM API (Groq)** — planning & code generation
+- **Godot Engine CLI** — headless execution & validation
+- **Python** — agent runtime and tooling
+- **Filesystem tools** — patch application and file inspection
+- **Groq LLM API** — planning and code generation
+- **Prompt templates** — structured planner/generator/agent prompting
 
 ---
-## Safety & Validation
 
-To prevent invalid or unsafe modifications, Gobot includes:
+## 🛡️ Safety & Validation
 
-- Path safety checks (blocks directory traversal)
-- Duplicate file detection
-- Scene format validation (.tscn header checks)
-- Engine runtime validation using Godot headless mode
+To reduce bad edits, Gobot includes:
+
+- path safety checks
+- duplicate file detection
+- restricted project-relative writes
+- scene format validation
+- runtime validation through Godot headless mode
+
+---
 
 ## ⚙️ Example Workflow
 
-**User Prompt:**
+### User Prompt
+> Make the player move fluidly like in a top-down Diablo-style game, and add basic damage handling.
 
-> Add a controllable player character.
-
-**Pipeline:**
-
-1. Planner creates action steps
-2. Generator produces scene & script files
-3. Executor writes files & updates project
-4. Validator runs Godot and verifies integrity
-
-Result: a working player node added to the scene.
+### Agent Flow
+1. Inspect project files
+2. Read the current `Player.gd`
+3. Plan required changes
+4. Generate a patch
+5. Apply patch
+6. Run Godot headless
+7. Inspect errors if needed
+8. Iterate
 
 ---
 
 ## 🚀 Getting Started
 
-### 1️⃣ Clone the repository
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/gadosanjos/Gobot.git
 cd Gobot
 ```
 
-### 2️⃣ Install dependencies
+### 2. Install dependencies
 
-Godot must be installed locally. Gobot interacts with the engine using the Godot headless CLI.
+```bash
+pip install -r gobot_game_agent/requirements.txt
+```
 
-### 3️⃣ Run the agent
+You also need a local Godot executable configured for headless use.
+
+### 3. Run the original pipeline
 
 ```bash
 python gobot_game_agent/agent.py
+```
+
+### 4. Run the ReAct runtime
+
+```bash
+python gobot_game_agent/react_agent.py
 ```
 
 ---
 
 ## 📁 Project Structure
 
-```
+```text
 Gobot/
 │
 ├── gobot_game_agent/
-│   ├── agent.py
+│   ├── agent.py              # original linear pipeline
+│   ├── react_agent.py        # ReAct runtime
 │   ├── planner.py
 │   ├── generator.py
+│   ├── retriever.py
 │   ├── validator.py
 │   ├── tools.py
-│   └── prompts/
+│   ├── prompts/
+│   │   └── prompt_template.py
+│   └── knowledge/
 │
-├── playground/        # Godot project
+├── playground/               # Godot project under test
 ├── README.md
 └── .gitignore
 ```
 
 ---
 
-## 📌 Status
+## 📌 Current Status
 
 🚧 Active development
-🎯 Goal: Fully autonomous Godot scene & gameplay scaffolding
+
+Current focus:
+- stabilizing the ReAct runtime
+- improving tool-call discipline
+- improving generated GDScript quality
+- iterating safely through Godot runtime feedback
+
+Planned future work:
+- stronger memory/state tracking
+- search over project code
+- better retry logic
+- better planning discipline
+- Git-aware workflows
+- broader scene automation
